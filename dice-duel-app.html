@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dice Duel</title>
+<style>
+  :root {
+    --bg: #fafafa; --fg: #222; --muted: #666; --border: #ccc;
+    --a: #4e79d6; --a-light: #cfdcf7;
+    --b: #e0812f; --b-light: #f8dcc2;
+    --tie: #d6d6d6;
+    --err: #c0392b;
+  }
+  body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--fg);
+         margin: 0; padding: 16px; }
+  main { max-width: 760px; margin: 0 auto; }
+  h1 { margin: 0 0 4px; }
+  p.rules { color: var(--muted); margin-top: 4px; }
+  .dice { display: flex; gap: 16px; flex-wrap: wrap; margin: 16px 0; }
+  .die { flex: 1 1 300px; border: 2px solid var(--border); border-radius: 10px; padding: 12px; background: #fff; }
+  .die.a { border-color: var(--a); }
+  .die.b { border-color: var(--b); }
+  .die h2 { margin: 0 0 8px; font-size: 1.1rem; }
+  .faces { display: flex; gap: 6px; }
+  .faces input { width: 2.4em; font-size: 1.2rem; text-align: center; padding: 4px 0; }
+  .faces input.bad { outline: 2px solid var(--err); }
+  .row { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+  .row input[type=text] { width: 7em; font-size: 1rem; font-family: monospace; }
+  .status { font-size: 0.9rem; margin-top: 6px; min-height: 1.2em; }
+  .status.err { color: var(--err); }
+  .status.ok { color: #2e7d32; }
+  button { font-size: 0.9rem; padding: 4px 10px; cursor: pointer; }
+  table.grid { border-collapse: collapse; margin: 16px auto; }
+  table.grid th, table.grid td { width: 52px; height: 44px; text-align: center; font-size: 1.05rem; }
+  table.grid td { border: 1px solid #fff; font-weight: 600; }
+  table.grid th.ha { color: var(--a); background: var(--a-light); }
+  table.grid th.hb { color: var(--b); background: var(--b-light); }
+  td.winA { background: var(--a); color: #fff; }
+  td.winB { background: var(--b); color: #fff; }
+  td.tie  { background: var(--tie); color: #444; }
+  .axis { font-size: 0.85rem; color: var(--muted); }
+  .scores { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin: 8px 0; }
+  .score { border-radius: 10px; padding: 10px 18px; color: #fff; text-align: center; min-width: 120px; }
+  .score.a { background: var(--a); }
+  .score.b { background: var(--b); }
+  .score.tie { background: var(--tie); color: #333; min-width: 90px; }
+  .score .detail { font-size: 0.85rem; }
+  .score .num { font-size: 2rem; font-weight: 700; }
+  .verdict { text-align: center; font-size: 1.3rem; font-weight: 600; margin: 12px 0; }
+  .bar { display: flex; height: 18px; border-radius: 9px; overflow: hidden; max-width: 420px; margin: 0 auto; }
+  .bar div { transition: width 0.3s; }
+  .legend { text-align: center; font-size: 0.9rem; color: var(--muted); }
+  .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: middle; margin: 0 4px 0 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Dice Duel</h1>
+  <p class="rules">
+    Each player builds a die: six whole numbers from 0 to 6 that add up to 21
+    (the standard die is 1 2 3 4 5 6). For each of the 36 pairs of faces, the higher number
+    earns 1 point (marked A or B); a tie (marked -) gives &frac12; point to each. Highest total out of 36 wins.
+  </p>
+
+  <div class="dice">
+    <div class="die a" id="dieA">
+      <h2 style="color:var(--a)">Player A</h2>
+      <div class="faces"></div>
+      <div class="row">
+        <input type="text" placeholder="e.g. 006555" aria-label="Quick entry for die A">
+        <button data-act="set">Set</button>
+        <button data-act="sortset">Sort and set</button>
+        <button data-act="std">Standard</button>
+        <button data-act="rand">Random</button>
+      </div>
+      <div class="status"></div>
+    </div>
+    <div class="die b" id="dieB">
+      <h2 style="color:var(--b)">Player B</h2>
+      <div class="faces"></div>
+      <div class="row">
+        <input type="text" placeholder="e.g. 333345" aria-label="Quick entry for die B">
+        <button data-act="set">Set</button>
+        <button data-act="sortset">Sort and set</button>
+        <button data-act="std">Standard</button>
+        <button data-act="rand">Random</button>
+      </div>
+      <div class="status"></div>
+    </div>
+  </div>
+
+  <div id="results"></div>
+</main>
+
+<script>
+const MAX_FACE = 6, TOTAL = 21, SIDES = 6;
+
+function setupDie(id, initial) {
+  const root = document.getElementById(id);
+  const facesDiv = root.querySelector('.faces');
+  const inputs = [];
+  for (let i = 0; i < SIDES; i++) {
+    const inp = document.createElement('input');
+    inp.type = 'number'; inp.min = 0; inp.max = MAX_FACE; inp.step = 1;
+    inp.value = initial[i];
+    inp.addEventListener('input', update);
+    facesDiv.appendChild(inp);
+    inputs.push(inp);
+  }
+  const quick = root.querySelector('input[type=text]');
+  const status = root.querySelector('.status');
+  const setValues = vals => { vals.forEach((v, i) => inputs[i].value = v); update(); };
+
+  // Accept "123456" or "1 2 3 4 5 6" / "1,2,3,4,5,6"; returns null (and shows an error) if not 6 numbers.
+  const parseQuick = () => {
+    const digits = quick.value.replace(/[^0-9]/g, ' ').trim();
+    const vals = /\s/.test(digits) ? digits.split(/\s+/) : digits.split('');
+    if (vals.length !== SIDES) { status.className = 'status err'; status.textContent = 'Quick entry needs exactly 6 numbers.'; return null; }
+    return vals.map(Number);
+  };
+  root.querySelector('[data-act=set]').onclick = () => {
+    const vals = parseQuick();
+    if (vals) setValues(vals);
+  };
+  // Sorts the quick-entry values (or the current faces, if quick entry is empty) in decreasing order.
+  root.querySelector('[data-act=sortset]').onclick = () => {
+    const vals = quick.value.trim() ? parseQuick() : inputs.map(inp => Number(inp.value));
+    if (!vals) return;
+    vals.sort((x, y) => y - x);
+    quick.value = vals.join('');
+    setValues(vals);
+  };
+  quick.addEventListener('keydown', e => { if (e.key === 'Enter') root.querySelector('[data-act=set]').click(); });
+  root.querySelector('[data-act=std]').onclick = () => setValues([1,2,3,4,5,6]);
+  root.querySelector('[data-act=rand]').onclick = () => setValues(randomDie());
+
+  return { inputs, status };
+}
+
+// Random valid die by rejection sampling (every valid die is possible; faces shown sorted).
+function randomDie() {
+  while (true) {
+    const d = Array.from({length: SIDES}, () => Math.floor(Math.random() * (MAX_FACE + 1)));
+    if (d.reduce((s, x) => s + x, 0) === TOTAL) return d.sort((a, b) => a - b);
+  }
+}
+
+function readDie(die) {
+  const vals = die.inputs.map(inp => inp.value.trim() === '' ? NaN : Number(inp.value));
+  const errors = [];
+  die.inputs.forEach((inp, i) => {
+    const v = vals[i];
+    const bad = !Number.isInteger(v) || v < 0 || v > MAX_FACE;
+    inp.classList.toggle('bad', bad);
+    if (bad) errors.push(`face ${i + 1}`);
+  });
+  if (errors.length) {
+    die.status.className = 'status err';
+    die.status.textContent = `Each face must be a whole number 0–${MAX_FACE} (check ${errors.join(', ')}).`;
+    return null;
+  }
+  const sum = vals.reduce((s, x) => s + x, 0);
+  if (sum !== TOTAL) {
+    die.status.className = 'status err';
+    die.status.textContent = `Faces add to ${sum}; they must add to ${TOTAL} (${sum > TOTAL ? 'remove' : 'add'} ${Math.abs(sum - TOTAL)}).`;
+    return null;
+  }
+  die.status.className = 'status ok';
+  die.status.textContent = `Valid die (sum = ${TOTAL}).`;
+  return vals;
+}
+
+const fmt = x => Number.isInteger(x) ? String(x) : (Math.floor(x) ? Math.floor(x) + '½' : '½');
+
+function render(a, b) {
+  const out = document.getElementById('results');
+  if (!a || !b) { out.innerHTML = '<p class="verdict" style="color:var(--muted)">Enter two valid dice to see the results.</p>'; return; }
+
+  let winsA = 0, winsB = 0, ties = 0;
+  let html = '<table class="grid"><tr><th class="axis">A \\ B</th>';
+  b.forEach(v => html += `<th class="hb">${v}</th>`);
+  html += '</tr>';
+  a.forEach(x => {
+    html += `<tr><th class="ha">${x}</th>`;
+    b.forEach(y => {
+      if (x > y)      { winsA++; html += `<td class="winA" title="${x} vs ${y}: A wins">A</td>`; }
+      else if (y > x) { winsB++; html += `<td class="winB" title="${x} vs ${y}: B wins">B</td>`; }
+      else            { ties++;  html += `<td class="tie" title="${x} vs ${y}: tie">-</td>`; }
+    });
+    html += '</tr>';
+  });
+  html += '</table>';
+  const scoreA = winsA + ties / 2, scoreB = winsB + ties / 2;
+
+  html += `<div class="legend"><span class="swatch" style="background:var(--a)"></span>A wins
+           <span class="swatch" style="background:var(--b)"></span>B wins
+           <span class="swatch" style="background:var(--tie)"></span>- tie (½ point each)</div>`;
+
+  const s = n => n === 1 ? '' : 's';
+  html += `<div class="scores">
+     <div class="score a"><div>Player A</div><div class="num">${fmt(scoreA)}</div>
+       <div class="detail">${winsA} win${s(winsA)} + ½ × ${ties} tie${s(ties)}</div></div>
+     <div class="score tie"><div>Ties</div><div class="num">${ties}</div><div class="detail">½ point each</div></div>
+     <div class="score b"><div>Player B</div><div class="num">${fmt(scoreB)}</div>
+       <div class="detail">${winsB} win${s(winsB)} + ½ × ${ties} tie${s(ties)}</div></div>
+   </div>
+   <p class="legend">A wins + B wins + ties = ${winsA} + ${winsB} + ${ties} = 36 squares</p>`;
+  html += `<div class="bar"><div style="width:${scoreA / 36 * 100}%;background:var(--a)"></div>
+           <div style="width:${scoreB / 36 * 100}%;background:var(--b)"></div></div>`;
+
+  const verdict = scoreA > scoreB ? '<span style="color:var(--a)">Player A wins!</span>'
+                : scoreB > scoreA ? '<span style="color:var(--b)">Player B wins!</span>'
+                : 'It’s a draw.';
+  html += `<p class="verdict">${verdict}</p>`;
+  out.innerHTML = html;
+}
+
+let dieA, dieB;
+function update() { if (dieA && dieB) render(readDie(dieA), readDie(dieB)); }
+dieA = setupDie('dieA', [1,2,3,4,5,6]);
+dieB = setupDie('dieB', [0,3,3,4,5,6]);
+update();
+</script>
+</body>
+</html>

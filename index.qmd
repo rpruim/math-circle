@@ -1,0 +1,12 @@
+---
+title: Math Circle
+format: html
+self-contained: true
+---
+
+
+### Dice Duel
+
+* [Instructions](dice-duel-instructions.pdf)
+* [Grids](dice-duel-grids.pdf)
+* [App](dice-duel-app.html)

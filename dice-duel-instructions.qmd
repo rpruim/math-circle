@@ -1,0 +1,71 @@
+---
+title: Dice Duel
+format: 
+  typst:
+    margin:
+      x: 0.7in
+      y: 0.7in
+---
+
+
+### Rules of the Dice Duel
+
+1.  In each round, each player roles their die. 
+Higher number wins a point.
+
+    * If there is a tie, give each player the same amount.  (Your choice: 0, 1/2, or 1 for the amount.)
+
+    *  *Why doesn't it matter what amount you award for a tie?*
+
+2.  Repeat for 36 rounds.  Winner is the one with the most points.
+
+3.  In case of a tie, go into sudden death. 
+    First player to win a round wins the match.
+
+### Boring Dice Duel
+
+4. If  we use standard dice, the game is a little boring. Why?
+
+### Exciting Dice Duel
+
+We can make dice duel more exciting by letting the players 
+each create their own die, subject to these rules:
+
+*  Each side of the die must have a whole number from 0 to 6.
+
+*  The total of all the numbers must be 21.
+
+Give some thought to what numbers you want to choose.  The standard die has the numbers 123456.
+
+4. Find a partner and play dice duel with your custom dice. 
+Report the winner, the loser, and your dice.  
+
+5. We'll use this to start a kind of tournament. Each time you win, you move to the right on the score table.  Once you have lost twice you are out.
+
+### Questions
+
+
+6.  Is there a best die? What would that even mean?
+
+2.  Is there a worst die? What would that mean?
+
+3.  How good is the standard die (123456)?  Can you find a die that
+    should beat it?  Can you find a die that the standard die
+    should beat?  How can you tell?
+
+4.  Find a die that did well in our tournament.  Can you find a 
+    die that should beat it?  Can you find a die that should beat
+    that die?  If you keep going like this, will you find the best
+    die?
+
+4.  By now, you should have realized that some dice have an advantage
+    over some other dice.  What is the largest advantage you can 
+    find between two dice?
+
+4.  If you could make your own die now, how would you make it?
+    Does it matter if you know what die your opponent is using?
+
+5.  How many different dice are there?
+
+6.  What other questions could you ask about this game?  Can you
+    answer any of them?
